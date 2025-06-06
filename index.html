@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Attendance & Leave Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Login Form -- Must be logged in by demo credentials because no backend logic is created -- Username: "admin", Password: "admin123" -->
+    <div id="login-screen" class="login-container">
+        <div class="login-card">
+            <h2>Welcome Back</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+            <div id="login-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- After Here Everything is Hidden till the login -->
+    <div id="app-container" class="hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <h1>Attendance & Leave</h1>
+                <p id="current-date"></p>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <span id="logged-in-user">Admin</span>
+                    <!-- Currently Only Admin is Shown because of no backend logic -->
+                    <button id="logout-btn" class="btn-logout">Logout</button>
+                </div>
+            </div>
+        </header>
+        <main class="app-main">
+
+            <!-- Side Navbar -->
+            <aside class="app-sidebar">
+                <nav>
+                    <ul>
+                        <li class="active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+                        <li data-section="employees"><i class="fas fa-users"></i> Employees</li>
+                        <li data-section="attendance"><i class="fas fa-calendar-check"></i> Attendance</li>
+                        <li data-section="leave"><i class="fas fa-calendar-minus"></i> Leave Management</li>
+                        <li data-section="reports"><i class="fas fa-chart-bar"></i> Reports</li>
+                    </ul>
+                </nav>
+            </aside>
+            
+            <div class="content-area">
+
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="content-section">
+                    <div class="dashboard-header">
+                        <h2>Dashboard Overview</h2>
+                        <div class="dashboard-filters">
+                            <select id="dashboard-period">
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Complete Stats Overview -->
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background-color: #4e73df;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Employees</h3>
+                                <p id="total-employees">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background-color: #1cc88a;">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Present Today</h3>
+                                <p id="present-today">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background-color: #f6c23e;">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>On Leave</h3>
+                                <p id="on-leave">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background-color: #e74a3b;">
+                                <i class="fas fa-user-times"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Absent Today</h3>
+                                <p id="absent-today">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-charts">
+                        <div class="chart-container">
+                            <canvas id="attendance-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="leave-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="recent-activity">
+                        <h3>Recent Leave Requests</h3>
+                        <div class="activity-list" id="recent-leaves">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Employees Section -->
+                <section id="employees-section" class="content-section hidden">
+                    <div class="section-header">
+                        <h2>Employee Management</h2>
+                        <div class="section-actions">
+                            <button id="add-employee-btn" class="btn-primary">Add Employee</button>
+                            <div class="search-box">
+                                <input type="text" id="employee-search" placeholder="Search employees...">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employee Data Adder Form -->
+                    <div id="employee-form-container" class="form-container hidden">
+                        <form id="employee-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emp-id">Employee ID*</label>
+                                    <input type="text" id="emp-id" required>
+                                    <div class="error-message" id="emp-id-error"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="emp-name">Full Name*</label>
+                                    <input type="text" id="emp-name" required>
+                                    <div class="error-message" id="emp-name-error"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emp-email">Email*</label>
+                                    <input type="email" id="emp-email" required>
+                                    <div class="error-message" id="emp-email-error"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="emp-phone">Phone*</label>
+                                    <input type="tel" id="emp-phone" required>
+                                    <div class="error-message" id="emp-phone-error"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emp-dept">Department*</label>
+                                    <input type="text" id="emp-dept" list="dept-list" required>
+                                    <datalist id="dept-list">
+                                        <option value="Human Resources">
+                                        <option value="Finance">
+                                        <option value="IT">
+                                        <option value="Marketing">
+                                        <option value="Operations">
+                                    </datalist>
+                                    <div class="error-message" id="emp-dept-error"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="emp-position">Position*</label>
+                                    <input type="text" id="emp-position" required>
+                                    <div class="error-message" id="emp-position-error"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emp-join-date">Join Date*</label>
+                                    <input type="date" id="emp-join-date" required>
+                                    <div class="error-message" id="emp-join-date-error"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="emp-status">Status*</label>
+                                    <select id="emp-status" required>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="On Leave">On Leave</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="cancel-employee-btn" class="btn-secondary">Cancel</button>
+                                <button type="submit" id="save-employee-btn" class="btn-primary">Save</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Employee Data Holder Table -->
+                    <div class="table-container">
+                        <table id="employees-table">
+                            <thead>
+                                <tr>
+                                    <th>ID <i class="fas fa-sort" data-sort="id"></i></th>
+                                    <th>Name <i class="fas fa-sort" data-sort="name"></i></th>
+                                    <th>Department <i class="fas fa-sort" data-sort="department"></i></th>
+                                    <th>Position <i class="fas fa-sort" data-sort="position"></i></th>
+                                    <th>Status <i class="fas fa-sort" data-sort="status"></i></th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employees-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Attendance Section -- Dynamically Changes -->
+                <section id="attendance-section" class="content-section hidden">
+                    <div class="section-header">
+                        <h2>Attendance Tracking</h2>
+                        <div class="section-actions">
+                            <div class="date-picker">
+                                <input type="date" id="attendance-date" value="">
+                            </div>
+                            <div class="search-box">
+                                <input type="text" id="attendance-search" placeholder="Search...">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Data Holder Table -->
+                    <div class="table-container">
+                        <table id="attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee ID</th>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Complete Leave Section -- Dynamically Changes -->
+                <section id="leave-section" class="content-section hidden">
+                    <div class="section-header">
+                        <h2>Leave Management</h2>
+                        <div class="section-actions">
+                            <button id="request-leave-btn" class="btn-primary">Request Leave</button>
+                            <div class="search-box">
+                                <input type="text" id="leave-search" placeholder="Search...">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <select id="leave-status-filter">
+                                <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Leave Data Adder Form -- Normally Hidden -->
+                    <div id="leave-form-container" class="form-container hidden">
+                        <form id="leave-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="leave-employee">Employee*</label>
+                                    <select id="leave-employee" required>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="leave-type">Leave Type*</label>
+                                    <select id="leave-type" required>
+                                        <option value="Sick Leave">Sick Leave</option>
+                                        <option value="Vacation">Vacation</option>
+                                        <option value="Personal">Personal</option>
+                                        <option value="Maternity/Paternity">Maternity/Paternity</option>
+                                        <option value="Bereavement">Bereavement</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="leave-start">Start Date*</label>
+                                    <input type="date" id="leave-start" required>
+                                    <div class="error-message" id="leave-start-error"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="leave-end">End Date*</label>
+                                    <input type="date" id="leave-end" required>
+                                    <div class="error-message" id="leave-end-error"></div>
+                                </div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="leave-reason">Reason*</label>
+                                <textarea id="leave-reason" rows="3" required></textarea>
+                                <div class="error-message" id="leave-reason-error"></div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="cancel-leave-btn" class="btn-secondary">Cancel</button>
+                                <button type="submit" id="submit-leave-btn" class="btn-primary">Submit</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Leave Data Table -- Dynamically Updated -->
+                    <div class="table-container">
+                        <table id="leave-table">
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Employee</th>
+                                    <th>Leave Type</th>
+                                    <th>Dates</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leave-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Reports Holder Section -- Dynamically Updated -->
+                <section id="reports-section" class="content-section hidden">
+                    <div class="section-header">
+                        <h2>Reports & Analytics</h2>
+                        <div class="report-filters">
+                            <select id="report-type">
+                                <option value="attendance">Attendance Summary</option>
+                                <option value="leave">Leave Summary</option>
+                                <option value="employee">Employee Report</option>
+                            </select>
+                            <div class="date-range" style="padding: 2px; margin: 5px;">
+                                <input type="date" id="report-start">
+                                <span>to</span>
+                                <input type="date" id="report-end">
+                            </div>
+                            <button id="generate-report-btn" class="btn-primary" style="margin: 5px;">Generate</button>
+                        </div>
+                    </div>
+
+                    <div class="report-container" id="report-container">
+                        <div class="report-header">
+                            <h3 id="report-title">Attendance Summary Report</h3>
+                            <p id="report-period">Period: Loading...</p>
+                        </div>
+                        
+                        <!-- Report Charts -- Dynamically Updated -->
+                        <div class="report-charts">
+                            <div class="chart-container">
+                                <canvas id="report-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Report Data Table -- Dynamically Updated -->
+                        <div class="report-table">
+                            <table id="report-data-table">
+                                <thead>
+                                    <tr>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Popup Confirmation Dialogue -->
+        <div id="confirmation-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Confirm Action</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-message">Are you sure you want to perform this action?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="modal-cancel" class="btn-secondary">Cancel</button>
+                    <button id="modal-confirm" class="btn-primary">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Animator -->
+        <div id="loading-spinner" class="loading-spinner hidden">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <!-- Popup Notification -->
+        <div id="notification-toast" class="toast hidden">
+            <div class="toast-content">
+                <i id="toast-icon" class="fas"></i>
+                <div class="toast-message">
+                    <p id="toast-title">Notification</p>
+                    <p id="toast-text">There is a popup message.</p>
+                </div>
+            </div>
+            <div class="toast-progress"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
